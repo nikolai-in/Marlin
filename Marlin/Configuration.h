@@ -77,9 +77,10 @@
  * Select the serial port on the board to use for communication with the host.
  * This allows the connection of wireless adapters (for instance) to non-default port pins.
  * Serial port -1 is the USB emulated serial port, if available.
+ * Serial port -2 is the built-in Bluetooth (Classic SPP) on ESP32, not together with WiFi.
  * Note: The first serial port (-1 or 0) will always be used by the Arduino bootloader.
  *
- * :[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+ * :[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
  */
 #define SERIAL_PORT -1
 
@@ -100,7 +101,7 @@
 
 /**
  * Select a secondary serial port on the board to use for communication with the host.
- * Currently Ethernet (-2) is only supported on Teensy 4.1 boards.
+ * -2 is Ethernet on Teensy 4.1 boards, and the built-in Bluetooth (Classic SPP) on ESP32.
  * ESP3D_WIFISUPPORT requires -1, which carries G-code from ESP3D to Marlin.
  * :[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
  */
@@ -109,8 +110,9 @@
 
 /**
  * Select a third serial port on the board to use for communication with the host.
- * Currently supported for AVR, DUE, SAMD51, LPC1768/9, STM32/STM32F1/HC32, and Teensy 4.x
- * :[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+ * Currently supported for AVR, DUE, SAMD51, LPC1768/9, STM32/STM32F1/HC32, and Teensy 4.x,
+ * and ESP32 for Bluetooth (-2).
+ * :[-2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
  */
 //#define SERIAL_PORT_3 1
 //#define BAUDRATE_3 250000   // :[2400, 9600, 19200, 38400, 57600, 115200, 250000, 500000, 1000000] Enable to override BAUDRATE
@@ -350,15 +352,15 @@
 //#define ELECTROMAGNETIC_SWITCHING_TOOLHEAD
 
 #if ANY(SWITCHING_TOOLHEAD, MAGNETIC_SWITCHING_TOOLHEAD, ELECTROMAGNETIC_SWITCHING_TOOLHEAD)
-  #define SWITCHING_TOOLHEAD_Y_POS          235         // (mm) Y position of the toolhead dock
-  #define SWITCHING_TOOLHEAD_Y_SECURITY      10         // (mm) Security distance Y axis
-  #define SWITCHING_TOOLHEAD_Y_CLEAR         60         // (mm) Minimum distance from dock for unobstructed X axis
+  #define SWITCHING_TOOLHEAD_Y_POS          235         // (mm) Y position of the toolhead dock. The docks are at the low-Y end if this is in the lower half of the Y travel, else at the high-Y end.
+  #define SWITCHING_TOOLHEAD_Y_SECURITY      10         // (mm) Security distance Y axis, from the dock toward the work area
+  #define SWITCHING_TOOLHEAD_Y_CLEAR         60         // (mm) Minimum distance from dock (toward the work area) for unobstructed X axis
   #define SWITCHING_TOOLHEAD_X_POS          { 215, 0 }  // (mm) X positions for parking the extruders
   #if ENABLED(SWITCHING_TOOLHEAD)
     #define SWITCHING_TOOLHEAD_SERVO_NR       2         // Index of the servo connector
     #define SWITCHING_TOOLHEAD_SERVO_ANGLES { 0, 180 }  // (degrees) Angles for Lock, Unlock
   #elif ENABLED(MAGNETIC_SWITCHING_TOOLHEAD)
-    #define SWITCHING_TOOLHEAD_Y_RELEASE      5         // (mm) Security distance Y axis
+    #define SWITCHING_TOOLHEAD_Y_RELEASE      5         // (mm) Security distance Y axis, from the dock toward the work area
     #define SWITCHING_TOOLHEAD_X_SECURITY   { 90, 150 } // (mm) Security distance X axis (T0,T1)
     //#define PRIME_BEFORE_REMOVE                       // Prime the nozzle before release from the dock
     #if ENABLED(PRIME_BEFORE_REMOVE)
@@ -3430,6 +3432,16 @@
 //#define SOVOL_SV06_RTS
 
 //
+// Creality Resistive Touch Screen
+// As found in the Creality CR-6 S1
+//
+//#define CREALITY_RTS
+#if ENABLED(CREALITY_RTS)
+  //#define CREALITY_WIFI      // Creality WiFi module
+  //#define MENU_RESET_WIFI    // The controller has a menu to reset WiFi with RESET_WIFI_PIN
+#endif
+
+//
 // 320x240 Nextion 2.8" serial TFT Resistive Touch Screen NX3224T028
 //
 //#define NEXTION_TFT
@@ -3615,7 +3627,23 @@
   //#define TFT_SHARED_IO   // I/O is shared between TFT display and other devices. Disable async data transfer.
 
   #define COMPACT_MARLIN_BOOT_LOGO  // Use compressed data to save Flash space
-#endif
+
+  /**
+   * Galaxy UI (by NOVIN3DP) for 480x320 touch screens (e.g., MKS TS35)
+   * Replaces the Color UI screens with a dark-blue touch UI: home tiles, print status
+   * with QOI G-code thumbnails, USB/SD storage selector and file grid, round XY jog pad,
+   * heater/fan sliders. Marlin list menus are drawn in the same style.
+   * Slicer: export G-code thumbnails as 48x48/QOI and 150x150/QOI.
+   */
+  //#define NOVIN3DP_GALAXY_UI
+  #if ENABLED(NOVIN3DP_GALAXY_UI)
+    //#define GALAXY_TOUCH_BEEP         // Short beep on every touch
+    //#define GALAXY_HOME_ICONS_FLAT    // Home screen icons: flat instead of 3D
+    //#define GALAXY_FAST_SPI           // Double the TFT SPI clock (STM32F4 on SPI1: 21 to 42MHz) to halve redraw time.
+                                        // Exceeds most panel specs. Disable if the screen shows noise or glitches.
+  #endif
+
+#endif // TFT_COLOR_UI
 
 /**
  * TFT Rotation. Set to one of the following values:
